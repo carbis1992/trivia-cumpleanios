@@ -24,7 +24,6 @@ let timer: ReturnType<typeof setInterval> | undefined
 let feedbackTimeout: ReturnType<typeof setTimeout> | undefined
 
 const currentQuestion = computed(() => questions[currentQuestionIndex.value])
-const progress = computed(() => ((currentQuestionIndex.value + 1) / questions.length) * 100)
 const isCorrect = computed(
   () => selectedAnswer.value === currentQuestion.value?.correctAnswer,
 )

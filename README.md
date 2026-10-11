@@ -18,6 +18,13 @@ npm run build
 npm run preview
 ```
 
+## Publicar en GitHub Pages
+
+El workflow `.github/workflows/deploy.yml` publica automáticamente el sitio al hacer push a `main` (también se puede ejecutar manualmente desde Actions). En la configuración del repositorio, abrí **Settings → Pages** y elegí **GitHub Actions** como origen de despliegue.
+
+Una vez completado el workflow, el sitio estará disponible en:
+https://carbis1992.github.io/trivia-cumpleanios/
+
 ## Personalizar las preguntas
 
 Editá `src/data/questions.ts`. Cada pregunta tiene un invitado, el texto, exactamente tres opciones y el índice de la respuesta correcta (`0` para la primera, `1` para la segunda, `2` para la tercera). Hay 23 preguntas de ejemplo para reemplazar por las de cada invitado.
