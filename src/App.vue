@@ -1,19 +1,33 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
-import { questions } from './data/questions'
+import { questions, type TriviaQuestion } from './data/questions'
+import { generalQuestions } from './data/generalQuestions'
 
-const QUESTION_TIME = 12
+const QUESTION_TIME = 10
 const RESULT_STORAGE_KEY = 'trivia-cumpleanios-results'
 const FEEDBACK_DURATION = 1300
 
 type Screen = 'welcome' | 'quiz' | 'result'
+type TriviaPack = 'friends' | 'general'
 type SavedResult = {
   score: number
   total: number
   completedAt: string
+  pack: TriviaPack
+}
+
+const PACK_LABELS: Record<TriviaPack, string> = {
+  friends: 'Trivia de la banda',
+  general: 'Trivia de cultura general',
+}
+
+const PACKS: Record<TriviaPack, TriviaQuestion[]> = {
+  friends: questions,
+  general: generalQuestions,
 }
 
 const screen = ref<Screen>('welcome')
+const activePack = ref<TriviaPack>('friends')
 const currentQuestionIndex = ref(0)
 const selectedAnswer = ref<number | null>(null)
 const score = ref(0)
@@ -23,7 +37,8 @@ const savedResult = ref<SavedResult | null>(loadSavedResult())
 let timer: ReturnType<typeof setInterval> | undefined
 let feedbackTimeout: ReturnType<typeof setTimeout> | undefined
 
-const currentQuestion = computed(() => questions[currentQuestionIndex.value])
+const currentQuestions = computed(() => PACKS[activePack.value])
+const currentQuestion = computed(() => currentQuestions.value[currentQuestionIndex.value])
 const isCorrect = computed(
   () => selectedAnswer.value === currentQuestion.value?.correctAnswer,
 )
@@ -40,14 +55,17 @@ function loadSavedResult(): SavedResult | null {
       'score' in parsed &&
       'total' in parsed &&
       'completedAt' in parsed &&
+      'pack' in parsed &&
       typeof parsed.score === 'number' &&
       typeof parsed.total === 'number' &&
-      typeof parsed.completedAt === 'string'
+      typeof parsed.completedAt === 'string' &&
+      (parsed.pack === 'friends' || parsed.pack === 'general')
     ) {
       return {
         score: parsed.score,
         total: parsed.total,
         completedAt: parsed.completedAt,
+        pack: parsed.pack,
       }
     }
 
@@ -82,9 +100,12 @@ function startTimer() {
   }, 1000)
 }
 
-function startQuiz() {
-  if (!questions.length) return
+function startQuiz(pack: TriviaPack = activePack.value) {
+  const packQuestions = PACKS[pack]
+  if (!packQuestions.length) return
+
   if (feedbackTimeout) clearTimeout(feedbackTimeout)
+  activePack.value = pack
   currentQuestionIndex.value = 0
   selectedAnswer.value = null
   score.value = 0
@@ -112,7 +133,7 @@ function advanceQuestion() {
     feedbackTimeout = undefined
   }
 
-  if (currentQuestionIndex.value + 1 >= questions.length) {
+  if (currentQuestionIndex.value + 1 >= currentQuestions.value.length) {
     finishQuiz()
     return
   }
@@ -127,8 +148,9 @@ function finishQuiz() {
   screen.value = 'result'
   savedResult.value = {
     score: score.value,
-    total: questions.length,
+    total: currentQuestions.value.length,
     completedAt: new Date().toISOString(),
+    pack: activePack.value,
   }
 
   try {
@@ -166,35 +188,25 @@ onBeforeUnmount(() => {
       <img src="./assets/gato.png" alt="Gato celebrando" class="gato" />
     </div>
     <section v-if="screen === 'welcome'" class="card welcome-card" aria-labelledby="welcome-title">
-      <!-- <div class="eyebrow"><span class="eyebrow-dot"></span> EDICIÓN CUMPLEAÑOS</div> -->
-      <!-- <div class="cake-illustration" aria-hidden="true">
-        <span class="cake-sparkle sparkle-left">✦</span>
-        <span class="cake-sparkle sparkle-right">✧</span>
-        <span class="cake-candle"></span>
-        <span class="cake-top"></span>
-        <span class="cake-middle"></span>
-        <span class="cake-bottom"></span>
-        <span class="cake-plate"></span>
-      </div> -->
-  
       <h1 id="welcome-title">¿Cuánto conocés<br />a esta banda?</h1>
       <p class="welcome-copy">
-        23 preguntas, 12 segundos para cada una.<br />
+        23 personas, 23 preguntas, 10 segundos para cada una.<br />
         ¡A ver quién estuvo prestando atención!
       </p>
       <!-- <div class="welcome-details">
         <span><span aria-hidden="true">⏱</span> 10 segundos por pregunta</span>
         <span><span aria-hidden="true">♥</span> 23 preguntas</span>
       </div> -->
-      <button class="button button-primary start-button" type="button" @click="startQuiz">
+      <button class="button button-primary start-button" type="button" @click="startQuiz('friends')">
         Mandale play
         <!-- <span aria-hidden="true">→</span> -->
-      </button>
+        </button>
       <!-- <p class="sample-note">Las preguntas actuales son ejemplos editables.</p> -->
-      <p v-if="savedResult" class="last-result">
+      <!-- <p v-if="savedResult" class="last-result">
         Tu último resultado: <strong>{{ savedResult.score }} de {{ savedResult.total }}</strong>
+        <span class="last-result-pack">({{ PACK_LABELS[savedResult.pack] }})</span>
       </p>
-      <p v-if="storageError" class="storage-warning" role="status">{{ storageError }}</p>
+      <p v-if="storageError" class="storage-warning" role="status">{{ storageError }}</p> -->
     </section>
     
     <section v-else-if="screen === 'quiz'" class="card quiz-card" aria-labelledby="question-title">
@@ -202,7 +214,7 @@ onBeforeUnmount(() => {
       <div class="quiz-meta">
         <span class="question-counter">
           PREGUNTA <strong>{{ String(currentQuestionIndex + 1).padStart(2, '0') }}</strong>
-          <span class="counter-divider">/</span> {{ String(questions.length).padStart(2, '0') }}
+          <span class="counter-divider">/</span> {{ String(currentQuestions.length).padStart(2, '0') }}
         </span>
         <span class="timer" :class="{ 'timer-low': secondsLeft <= 5 }" aria-live="off">
           <span aria-hidden="true">◷</span> 00:{{ String(secondsLeft).padStart(2, '0') }}
@@ -263,21 +275,34 @@ onBeforeUnmount(() => {
     <section v-else class="card result-card" aria-labelledby="result-title">
       <!-- <div class="result-badge" aria-hidden="true">{{ score === questions.length ? '🏆' : '🎉' }}</div> -->
       <div class="eyebrow"> ¡FIN DE LA TRIVIA!</div>
-      <!-- <h1 id="result-title">¡Qué buen momento!</h1> -->
+      <p class="result-pack">{{ PACK_LABELS[activePack] }}</p>
       <p class="result-score">
         <strong>{{ score }}</strong>
         <span>{{ score === 1 ? 'respuesta correcta' : 'respuestas correctas' }}</span>
       </p>
-      <p class="result-total">de {{ questions.length }} preguntas</p>
+      <p class="result-total">de {{ currentQuestions.length }} preguntas</p>
       <div class="result-progress" aria-hidden="true">
-        <span :style="{ width: `${(score / questions.length) * 100}%` }"></span>
+        <span :style="{ width: `${(score / currentQuestions.length) * 100}%` }"></span>
       </div>
-      <!-- <p class="result-message">
-        {{ score >= 18 ? '¡Sos parte del círculo íntimo!' : score >= 10 ? '¡Se nota que comparten buenos momentos!' : '¡Hay muchas anécdotas por ponerse al día!' }}
-      </p> -->
       <p v-if="storageError" class="storage-warning" role="status">{{ storageError }}</p>
-      <button class="button button-primary replay-button" type="button" @click="startQuiz">
+      <button class="button button-primary replay-button" type="button" @click="startQuiz(activePack)">
         Jugar otra vez <span aria-hidden="true">↻</span>
+      </button>
+      <button
+        v-if="activePack === 'friends'"
+        class="button button-secondary replay-button"
+        type="button"
+        @click="startQuiz('general')"
+      >
+        Trivia de cultura general
+      </button>
+      <button
+        v-else
+        class="button button-secondary replay-button"
+        type="button"
+        @click="startQuiz('friends')"
+      >
+        Volver a la banda
       </button>
       <button class="text-button" type="button" @click="screen = 'welcome'">Volver al inicio</button>
     </section>
@@ -300,6 +325,35 @@ onBeforeUnmount(() => {
       width: 100%;
     margin: auto;
     margin-left: 14px;
+}
+
+.pack-picker {
+  display: grid;
+  gap: 0.75rem;
+  width: min(100%, 22rem);
+  margin: 1.5rem auto 0;
+}
+
+.button-secondary {
+  background: #f9f6ff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--pink);
+  margin-top: 0.5rem;
+}
+
+.last-result-pack {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.result-pack {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.8;
 }
 
 .gato-container {

@@ -1,6 +1,6 @@
 # Trivia de cumpleaños
 
-Una trivia responsive hecha con Vue 3, TypeScript y Vite. Cada partida tiene 23 preguntas, tres opciones por pregunta y 15 segundos para responder. Al elegir una opción, la respuesta queda bloqueada y se muestra si fue correcta antes de continuar. Si se acaba el tiempo, la trivia avanza sin sumar un punto.
+Una trivia responsive hecha con Vue 3, TypeScript y Vite. Tiene dos modos: una trivia de la banda y una de cultura general. Cada partida tiene varias preguntas, tres opciones por pregunta y 12 segundos para responder. Al elegir una opción, la respuesta queda bloqueada y se muestra si fue correcta antes de continuar. Si se acaba el tiempo, la trivia avanza sin sumar un punto.
 
 ## Empezar
 
