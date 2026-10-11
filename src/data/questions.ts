@@ -9,7 +9,7 @@ export interface TriviaQuestion {
 export const questions: TriviaQuestion[] = [
   {
     guest: 'Mauro',
-    prompt: '¿Qué deporte le gusta más mirar a Mauro?',
+    prompt: '¿Qué deporte disfruta mirar Mauro?',
     options: ['Futbol', 'Rugby', 'Formula 1'],
     correctAnswer: 1,
   },
